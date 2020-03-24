@@ -1,9 +1,9 @@
 import React from 'react';
 import { render } from '@testing-library/react';
-import App from './App';
+import Syncarr from './Syncarr';
 
 test('renders learn react link', () => {
-  const { getByText } = render(<App />);
+  const { getByText } = render(<Syncarr />);
   const linkElement = getByText(/learn react/i);
   expect(linkElement).toBeInTheDocument();
 });
