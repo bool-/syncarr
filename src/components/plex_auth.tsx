@@ -1,40 +1,28 @@
+import { PlexOptions, Pin } from '../plex';
+import * as plex from '../plex'
 import React from 'react';
-import axios from 'axios';
-import store from 'store';
 
-interface Props {
-  clientIdentifier: string;
-  clientVersion: string;
-  clientName: string;
+interface PlexAuthenticationProps {
+  plexOptions: PlexOptions;
+  onAuthenticationComplete(authToken: string): any;
 }
 
-export default class PlexAuthentication extends React.Component<Props> {
+export class PlexAuthentication extends React.Component<PlexAuthenticationProps, any> {
   private ticker?: NodeJS.Timeout;
 
-  constructor(props: Props) {
+  constructor(props: PlexAuthenticationProps) {
     super(props);
     this.ticker = undefined;
   }
 
   async componentDidMount() {
-    const plex = axios.create({
-      baseURL: 'https://plex.tv/',
-      headers: {
-        'X-Plex-Device': 'Web',
-        'X-Plex-Device-Name': this.props.clientName,
-        'X-Plex-Product': this.props.clientName,
-        'X-Plex-Version': this.props.clientVersion,
-        'X-Plex-Platform-Version': '',
-        'X-Plex-Client-Identifier': this.props.clientIdentifier,
-        'X-Plex-Platform': 'Firefox'
-      }
-    });
-    let result = await plex.post('/api/v2/pins?strong=true');
+    const client = plex.client(this.props.plexOptions);
+    let result: Pin = await plex.pin(client);
     const features = 'width=800, height=500, left=300, top=200';
-    const externalWindow = window.open(`https://app.plex.tv/auth/#!?clientID=${this.props.clientIdentifier}&code=${result.data.code}`, '', features);
+    const externalWindow = window.open(`https://app.plex.tv/auth/#!?clientID=${this.props.plexOptions.identifier}&code=${result.code}`, '', features);
     this.ticker = setInterval(async () => {
-      result = await plex.get(`https://plex.tv/api/v2/pins/${result.data.id}`);
-      if (result && result.data && result.data.authToken) {
+      result = await plex.pin(client, result.id);
+      if (result && result.authToken) {
         if (externalWindow) {
           externalWindow.close();
         }
@@ -42,8 +30,7 @@ export default class PlexAuthentication extends React.Component<Props> {
         if (this.ticker) {
           clearInterval(this.ticker);
         }
-        store.set('plexToken', result.data.authToken);
-        console.log(result.data.authToken);
+        this.props.onAuthenticationComplete(result.authToken);
       }
     }, 2000);
   }

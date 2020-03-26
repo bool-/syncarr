@@ -1,17 +1,12 @@
 import React from 'react';
 import { BrowserRouter as Router, Switch, Route, Link } from 'react-router-dom';
-import PlexAuthentication from './components/plex_auth';
+import {PlexAuthentication} from './components/plex_auth';
 import { v4 as uuidv4 } from 'uuid';
 import store from 'store';
-
-// TODO address this code block properly
-let clientIdentifier: string = store.get('clientIdentifier');
-if (!clientIdentifier) {
-  clientIdentifier = uuidv4();
-  store.set('clientIdentifier', clientIdentifier);
-}
-const clientVersion: string = '0.0.1';
-const clientName: string = 'Syncarr';
+import platform from 'platform';
+import { PlexOptions } from './plex';
+import * as plex from './plex'
+import { PlexDeviceSelection } from './components/plex_device_selection';
 
 function PlexSignin() {
   const plexToken = store.get('plexToken');
@@ -23,6 +18,22 @@ function PlexSignin() {
 }
 
 export default function Syncarr() {
+  // TODO address this code block properly
+  let clientIdentifier: string = store.get('clientIdentifier');
+  if (!clientIdentifier) {
+    clientIdentifier = uuidv4();
+    store.set('clientIdentifier', clientIdentifier);
+  }
+  let plexOptions: PlexOptions = {
+    device: platform.os?.family,
+    deviceName: platform.name,
+    platform: platform.name,
+    platformVersion: platform.version,
+    identifier: clientIdentifier,
+    provides: 'client, controller',
+    product: 'Syncarr',
+    token: store.get('plexToken', '')
+  };
   return (
     <Router>
       <div>
@@ -31,13 +42,17 @@ export default function Syncarr() {
         <Switch>
           <Route path="/signin">
             <PlexAuthentication
-              clientIdentifier={clientIdentifier}
-              clientVersion={clientVersion}
-              clientName={clientName}
+              plexOptions={plexOptions}
+              onAuthenticationComplete={(authToken) => {
+                plexOptions.token = authToken;
+              }}
             />
           </Route>
-          <Route path="/about">
-            <div/>
+          <Route path="/settings">
+            <PlexDeviceSelection
+              plexOptions={plexOptions}
+              onDeviceSelection={() => {}}
+            />
           </Route>
           <Route path="/player">
             <div/>
