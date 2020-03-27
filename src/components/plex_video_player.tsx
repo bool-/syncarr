@@ -21,7 +21,7 @@ interface Props {
   videoJsOptions: videojs.PlayerOptions;
 }
 
-export default class PlexVideoPlayer extends React.Component<Props> {
+class PlexVideoPlayer extends React.Component<Props> {
   private player?: videojs.Player;
   private videoNode?: HTMLVideoElement;
 
@@ -58,3 +58,5 @@ export default class PlexVideoPlayer extends React.Component<Props> {
     );
   }
 }
+
+export default PlexVideoPlayer;

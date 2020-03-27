@@ -1,13 +1,14 @@
 import { PlexOptions, Pin } from '../plex';
 import * as plex from '../plex'
 import React from 'react';
+import { withRouter, RouteComponentProps } from 'react-router-dom';
 
 interface PlexAuthenticationProps {
   plexOptions: PlexOptions;
   onAuthenticationComplete(authToken: string): any;
 }
 
-export class PlexAuthentication extends React.Component<PlexAuthenticationProps, any> {
+class PlexAuthentication extends React.Component<PlexAuthenticationProps, any> {
   private ticker?: NodeJS.Timeout;
 
   constructor(props: PlexAuthenticationProps) {
@@ -46,3 +47,4 @@ export class PlexAuthentication extends React.Component<PlexAuthenticationProps,
     )
   }
 }
+export default PlexAuthentication;
