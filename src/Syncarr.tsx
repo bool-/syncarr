@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { BrowserRouter as Router, Switch, Route, Link, RouteComponentProps } from 'react-router-dom';
+import React from 'react';
+import { BrowserRouter as Router, Switch, Route, Link } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import store from 'store';
 import platform from 'platform';
@@ -8,6 +8,7 @@ import PlexDeviceSelection from './components/plex_device_selection';
 
 import { PlexOptions, Resource } from './plex';
 import PlexServerSelection from './components/plex_servers';
+import PlexLibrary from './components/plex_library';
 
 function PlexSignin() {
   const plexToken = store.get('plexToken');
@@ -24,7 +25,7 @@ interface SyncarrState {
   server?: Resource
 }
 
-export default class Syncarr extends React.Component<any, SyncarrState> {
+class Syncarr extends React.Component<any, SyncarrState> {
   private plexOptions: PlexOptions;
 
   constructor(props: any) {
@@ -87,7 +88,7 @@ export default class Syncarr extends React.Component<any, SyncarrState> {
             <Route path="/library">
               {
                 this.state.server &&
-                <div>DO YA LIKE DAGS?</div>
+                <PlexLibrary plexOptions={this.plexOptions} onItemSelection={() => {}}/>
               }
             </Route>
             <Route path="/">
@@ -95,6 +96,7 @@ export default class Syncarr extends React.Component<any, SyncarrState> {
                 this.plexOptions.token !== '' &&
                 <PlexServerSelection plexOptions={this.plexOptions} onServerSelection={(server) => {
                   this.setState(state => {
+                    this.plexOptions.url = server.connections[0].uri;
                     return {
                       server: server,
                     };
@@ -108,6 +110,7 @@ export default class Syncarr extends React.Component<any, SyncarrState> {
     );
   }
 }
+export default Syncarr;
 
 function NavBar() {
   return (
@@ -120,6 +123,9 @@ function NavBar() {
       </li>
       <li>
         <Link to='/plex'>Plex</Link>
+      </li>
+      <li>
+        <Link to='/library'>Library</Link>
       </li>
     </ul>
   );

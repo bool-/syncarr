@@ -1,10 +1,9 @@
-import { PlexOptions, Pin } from '../plex';
-import * as plex from '../plex'
+import PlexAPI, { PlexOptions, Pin } from '../plex';
 import React from 'react';
-import { withRouter, RouteComponentProps } from 'react-router-dom';
 
 interface PlexAuthenticationProps {
   plexOptions: PlexOptions;
+
   onAuthenticationComplete(authToken: string): any;
 }
 
@@ -17,12 +16,12 @@ class PlexAuthentication extends React.Component<PlexAuthenticationProps, any> {
   }
 
   async componentDidMount() {
-    const client = plex.client(this.props.plexOptions);
-    let result: Pin = await plex.pin(client);
+    const client: PlexAPI = new PlexAPI(this.props.plexOptions);
+    let result: Pin = await client.pin();
     const features = 'width=800, height=500, left=300, top=200';
     const externalWindow = window.open(`https://app.plex.tv/auth/#!?clientID=${this.props.plexOptions.identifier}&code=${result.code}`, '', features);
     this.ticker = setInterval(async () => {
-      result = await plex.pin(client, result.id);
+      result = await client.pin(result.id);
       if (result && result.authToken) {
         if (externalWindow) {
           externalWindow.close();
@@ -44,7 +43,8 @@ class PlexAuthentication extends React.Component<PlexAuthenticationProps, any> {
       <div>
         Just keep swimming...
       </div>
-    )
+    );
   }
 }
+
 export default PlexAuthentication;

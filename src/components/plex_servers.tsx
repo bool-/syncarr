@@ -1,6 +1,5 @@
-import React, { SyntheticEvent } from 'react';
-import { PlexOptions, Resource } from '../plex';
-import * as plex from '../plex';
+import React  from 'react';
+import PlexAPI, { PlexOptions, Resource } from '../plex';
 
 interface PlexServerSelectionProps {
   plexOptions: PlexOptions;
@@ -20,8 +19,8 @@ class PlexServerSelection extends React.Component<PlexServerSelectionProps, Plex
   }
 
   async componentDidMount() {
-    const client = plex.client(this.props.plexOptions);
-    const resources: Resource[] = await plex.resources(client);
+    const client = new PlexAPI(this.props.plexOptions);
+    const resources: Resource[] = await client.resources();
     resources.forEach((resource) => {
         console.log(resource);
         // filter out anything that doesn't include player or client

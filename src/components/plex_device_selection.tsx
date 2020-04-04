@@ -1,7 +1,5 @@
 import React from 'react';
-import { PlexOptions, Resource } from '../plex';
-import * as plex from '../plex';
-import { withRouter, RouteComponentProps } from 'react-router-dom';
+import PlexAPI, { PlexOptions, Resource } from '../plex';
 
 interface PlexDeviceSelectionProps {
   plexOptions: PlexOptions;
@@ -21,8 +19,8 @@ class PlexDeviceSelection extends React.Component<PlexDeviceSelectionProps, Plex
   }
 
   async componentDidMount() {
-    const client = plex.client(this.props.plexOptions);
-    const resources: Resource[] = await plex.resources(client);
+    const client = new PlexAPI(this.props.plexOptions);
+    const resources: Resource[] = await client.resources();
     resources.forEach((resource) => {
         console.log(resource);
         // filter out anything that doesn't include player or client

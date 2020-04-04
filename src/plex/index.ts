@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
+import querystring from 'querystring';
 
 export interface PlexOptions {
   device?: string; //
@@ -13,38 +14,78 @@ export interface PlexOptions {
   url?: string;
 }
 
-/*
-X-Plex-Token: string
-X-Plex-Client-Identifier: string
-X-Plex-Product: string
-X-Plex-Version: string
-X-Plex-Device: string
-X-Plex-Device-Name: string
-X-Plex-Platform: string
-X-Plex-Platform-Version: string
-X-Plex-Provides: string
- */
-// TODO decide if this can be the same for plex.tv and direct server connections
-export function client(params: PlexOptions) {
-  return axios.create({
-    baseURL: params.url || 'https://plex.tv/',
-    headers: {
+export default class PlexAPI {
+  private axiosInstance: AxiosInstance;
+  private clientIdentifier: string;
+
+  constructor(private _plexOptions: PlexOptions) {
+    this.clientIdentifier = _plexOptions.identifier || Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    this.axiosInstance = axios.create({
+      baseURL: _plexOptions.url || 'https://plex.tv/',
+      headers: {
+        // TODO generate a uri from the hostname and port if specified
+        'X-Plex-Token': _plexOptions.token || '',
+        // http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript
+        'X-Plex-Client-Identifier': this.clientIdentifier,
+        'X-Plex-Product': _plexOptions.product || 'Plexarr',
+        'X-Plex-Version': _plexOptions.version || '0.0.0',
+        'X-Plex-Device': _plexOptions.device || 'NPM',
+        'X-Plex-Device-Name': _plexOptions.deviceName || 'JavaScript',
+        'X-Plex-Platform': _plexOptions.platform || 'JavaScript',
+        'X-Plex-Platform-Version': _plexOptions.platformVersion || '0.0.0',
+        'X-Plex-Provides': _plexOptions.provides || '',
+      },
+    });
+  }
+
+  generateQueryString(additionalHeaders?: any): string {
+    const headers = {
       // TODO generate a uri from the hostname and port if specified
-      'X-Plex-Token': params.token || '',
-      // http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript
-      'X-Plex-Client-Identifier': params.identifier || Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
-      'X-Plex-Product': params.product || 'Plexarr',
-      'X-Plex-Version': params.version || '0.0.0',
-      'X-Plex-Device': params.device || 'NPM',
-      'X-Plex-Device-Name': params.deviceName || 'JavaScript',
-      'X-Plex-Platform': params.platform || 'JavaScript',
-      'X-Plex-Platform-Version': params.platformVersion || '0.0.0',
-      'X-Plex-Provides': params.provides || '',
-    },
-  });
+      'X-Plex-Token': this._plexOptions.token || '',
+        // http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript
+        'X-Plex-Client-Identifier': this.clientIdentifier,
+        'X-Plex-Product': this._plexOptions.product || 'Plexarr',
+        'X-Plex-Version': this._plexOptions.version || '0.0.0',
+        'X-Plex-Device': this._plexOptions.device || 'NPM',
+        'X-Plex-Device-Name': this._plexOptions.deviceName || 'JavaScript',
+        'X-Plex-Platform': this._plexOptions.platform || 'JavaScript',
+        'X-Plex-Platform-Version': this._plexOptions.platformVersion || '0.0.0',
+        'X-Plex-Provides': this._plexOptions.provides || '',
+    };
+    const queryString = querystring.stringify({ ...headers, additionalHeaders });
+    return '?' + queryString;
+  }
+
+  public async pin(pin?: number, strong: boolean = true) : Promise<Pin> {
+    let result: AxiosResponse;
+    if (pin) {
+      result = await this.axiosInstance.get<Pin>(`/api/v2/pins/${pin}` + this.generateQueryString());
+    } else {
+      result = await this.axiosInstance.post<Pin>('/api/v2/pins/' + this.generateQueryString(), { 'strong': strong });
+    }
+    return result.data;
+  }
+  public async resources(): Promise<Resource[]> {
+    const result = await this.axiosInstance.get<Resource[]>(
+      '/api/v2/resources.json' + this.generateQueryString({ 'includeHttps': true }),
+    );
+    return result.data;
+  }
+
+  public async library(section?: number, key?: string): Promise<Library> {
+    let result: AxiosResponse;
+    if (key && section) {
+      result = await this.axiosInstance.get<Library>(`/library/sections/${section}/${key}` + this.generateQueryString());
+    } else if (section) {
+      result = await this.axiosInstance.get<Library>(`/library/sections/${section}` + this.generateQueryString());
+    } else {
+      result = await this.axiosInstance.get<Library>('/library/sections' + this.generateQueryString());
+    }
+    return result.data;
+  }
 }
 
-export interface Pin {
+export type Pin = {
   authToken: string;
   clientIdentifier: string;
   code: string;
@@ -65,17 +106,8 @@ export interface Pin {
   product: string;
   trusted: boolean;
 }
-export async function pin(instance: AxiosInstance, pin?: number, strong: boolean = true) : Promise<Pin> {
-  let result: AxiosResponse;
-  if (pin) {
-    result = await instance.get(`/api/v2/pins/${pin}`);
-  } else {
-    result = await instance.post('/api/v2/pins/', { 'strong': strong });
-  }
-  return result.data;
-}
 
-export interface Resource {
+export type Resource = {
   name: string;
   product: string;
   productVersion: string;
@@ -101,7 +133,7 @@ export interface Resource {
   natLoopbackSupported: boolean;
   connections: Connection[];
 }
-export interface Connection {
+export type Connection = {
   protocol: string;
   address: string;
   port: number;
@@ -110,9 +142,38 @@ export interface Connection {
   relay: boolean;
   IPv6: boolean;
 }
-export async function resources(instance: AxiosInstance): Promise<Resource[]> {
-  const result = await instance.get(
-    '/api/v2/resources.json?includeHttps=true',
-  );
-  return result.data;
+
+export type Library = {
+  MediaContainer: MediaContainer;
+}
+export type MediaContainer = MediaContainerBase & MediaContainerSection;
+export type MediaContainerBase = {
+  Directory: Directory;
+  allowSync: boolean;
+  identfier: string;
+  mediaTagPrefix: string;
+  mediaTagVersion: number;
+  size: number;
+  title1: string;
+}
+export type MediaContainerSection = {
+  Metadata: Metadata[];
+  art: string;
+  content: string;
+  librarySectionID: number;
+  librarySectionTitle: string;
+  librarySectionUUID: string;
+  thumb: string;
+  title2: string;
+  viewGroup: string;
+  viewMode: number;
+}
+export type Metadata = MetadataBase
+export type MetadataBase = {
+
+}
+export type Directory = DirectoryBase;
+export type DirectoryBase = {
+  key: string;
+  title: string;
 }

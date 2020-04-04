@@ -1,9 +1,21 @@
 import React, { ReactNode } from 'react';
-import { PlexOptions, Resource } from '../plex';
+import PlexAPI, { PlexOptions } from '../plex';
 
-class PlexLibrary extends React.Component<any, any> {
+interface PlexLibraryState {
 
-  componentDidMount(): void {
+}
+
+interface PlexLibraryProps {
+  plexOptions: PlexOptions;
+  onItemSelection(): any;
+}
+
+class PlexLibrary extends React.Component<PlexLibraryProps, PlexLibraryState> {
+
+  async componentDidMount() {
+    const client = new PlexAPI(this.props.plexOptions);
+    const library =  await client.library(5, 'all');
+    console.log(library);
   }
 
   render(): ReactNode {
